@@ -1,11 +1,7 @@
 #include "riscv_math.h"
-#include "gpio.h" //for indication for benchmarking
-#include "utils.h"
-#include "string_lib.h"
-#include "bar.h"
 #include <stdio.h>
 #include "riscv_const_structs.h"
-#include "bench.h"
+#include <math.h>
 
 #define EVENT_ID 0x00  /*number of cycles ID for benchmarking*/
 
@@ -14,7 +10,7 @@
 printf("\n\n")
 #define PRINT_Q(X,Y) printf("\n"); for(int i =0 ; i < (Y); i++) printf("0x%X  ",X[i]); \
 printf("\n\n")
-//#define PRINT_OUTPUT  /*for testing functionality for each function, removed while benchmarking*/
+#define PRINT_OUTPUT  /*for testing functionality for each function, removed while benchmarking*/
 #define TEST_LENGTH_SAMPLES 128
 /*
   this macros used for benchmarking, they are not friendly as they affect other GPIOs, but the main purpose here is to minimize the overhead,
@@ -23,13 +19,13 @@ a more fierndly version will be
 #define CLR_GPIO_6()    *(volatile int*) (GPIO_REG_PADOUT) &=  0xDF;
 #define SET_GPIO_5()     *(volatile int*) (GPIO_REG_PADOUT) |=  0x10;
 #define CLR_GPIO_5()     *(volatile int*) (GPIO_REG_PADOUT) &=  0xEF;
-*/
+
 
 #define SET_GPIO_6()     *(volatile int*) (GPIO_REG_PADOUT) =  0x20;
 #define CLR_GPIO_6()    *(volatile int*) (GPIO_REG_PADOUT) =  0x00;
 #define SET_GPIO_5()     *(volatile int*) (GPIO_REG_PADOUT) =  0x10;
 #define CLR_GPIO_5() *(volatile int*) (GPIO_REG_PADOUT) = 0x00;
-
+*/
 
 /*
 *Each function has a GPIO pin (5 and 6 alternatively ) set before it runs and is cleared after it finish running
@@ -38,10 +34,10 @@ to measure the time of execution of each function.
 *Also the correct results are printed for the current values which are calculated from the orignal library 
 and also were checked by hand
 */
-void perf_enable_id( int eventid){
-  cpu_perf_conf_events(SPR_PCER_EVENT_MASK(eventid));
-  cpu_perf_conf(SPR_PCMR_ACTIVE | SPR_PCMR_SATURATE);
-};
+// void perf_enable_id( int eventid){
+//   cpu_perf_conf_events(SPR_PCER_EVENT_MASK(eventid));
+//   cpu_perf_conf(SPR_PCMR_ACTIVE | SPR_PCMR_SATURATE);
+// };
 
 float32_t testInput_f32[TEST_LENGTH_SAMPLES] = 
 {   
@@ -102,34 +98,107 @@ q31_t testInput_q31[TEST_LENGTH_SAMPLES] =
 0x00080000, 	0, 	0x110C0000, 	0, 	0x3A420000, 	0, 	0xA2120000, 	0, 
 };
 
+float16_t testInput_fp16[TEST_LENGTH_SAMPLES] = 
+{   
+-0.8652f, 0.0f, -2.6550f, 0.0f, 0.6007f, 0.0f, 0.0804f, 0.0f,
+-2.8992f, 0.0f, 2.5630f, 0.0f, 3.0783f, 0.0f, 0.1059f, 0.0f,
+0.0484f, 0.0f, -0.1457f, 0.0f, -0.0234f, 0.0f, 2.1277f, 0.0f,
+-1.1766f, 0.0f, 3.6902f, 0.0f, -0.6228f, 0.0f, 0.7228f, 0.0f,
+2.7398f, 0.0f, -0.0626f, 0.0f, -0.8913f, 0.0f, -1.8459f, 0.0f,
+1.1950f, 0.0f, -2.1774f, 0.0f, 1.0786f, 0.0f, 2.5710f, 0.0f,
+-1.3836f, 0.0f, 2.3921f, 0.0f, 2.8580f, 0.0f, -3.6824f, 0.0f,
+-3.4881f, 0.0f, 1.3235f, 0.0f, -0.0998f, 0.0f, 1.5612f, 0.0f,
+1.0250f, 0.0f, 0.9288f, 0.0f, 2.9305f, 0.0f, 2.0133f, 0.0f,
+2.3817f, 0.0f, -3.0811f, 0.0f, -0.3896f, 0.0f, 0.1815f, 0.0f,
+-2.6020f, 0.0f, 0.3334f, 0.0f, -2.8129f, 0.0f, 2.6491f, 0.0f,
+-1.0040f, 0.0f, 1.5525f, 0.0f, 0.0886f, 0.0f, -2.5200f, 0.0f,
+-4.3413f, 0.0f, 0.5578f, 0.0f, -1.6713f, 0.0f, 0.7340f, 0.0f,
+0.4093f, 0.0f, 3.5660f, 0.0f, 1.8826f, 0.0f, -1.1060f, 0.0f,
+0.1545f, 0.0f, -2.5132f, 0.0f, 0.3110f, 0.0f, 0.5797f, 0.0f,
+0.0001f, 0.0f, -1.3119f, 0.0f, 1.8400f, 0.0f, -3.2530f, 0.0f
+};
+
 uint32_t fftSize = 64;
 uint32_t ifftFlag = 0;
-uint32_t doBitReverse = 1;
+uint32_t doBitReverse = 0;
 
+// Define an epsilon for float16 comparison
+#define FP16_EPSILON 1e-2f
 
+// Function to compare two float16 values
+int is_close_fp16(float16_t a, float16_t b) {
+    return fabsf((float)a - (float)b) < FP16_EPSILON;
+}
+
+// Expected output for FP16 FFT (you need to fill this with correct values)
+float16_t expected_output_fp16[TEST_LENGTH_SAMPLES] = {
+    4.23f, 0.0f, -5.133f, 0.0f, -0.2249f, 0.0f, -21.77f, 0.0f,
+    -4.98f, 0.0f, -6.42f, 0.0f, 11.15f, 0.0f, -16.58f, 0.0f,
+    -8.91f, 0.0f, -9.28f, 0.0f, 3.945f, 0.0f, 7.1f, 0.0f,
+    -0.8794f, 0.0f, 13.15f, 0.0f, -16.56f, 0.0f, -1.855f, 0.0f,
+    -17.97f, 0.0f, -4.223f, 0.0f, -4.62f, 0.0f, -16.05f, 0.0f,
+    10.945f, 0.0f, -13.89f, 0.0f, 8.62f, 0.0f, 7.742f, 0.0f,
+    7.617f, 0.0f, 30.5f, 0.0f, -6.97f, 0.0f, -7.0f, 0.0f,
+    4.277f, 0.0f, 6.062f, 0.0f, 18.75f, 0.0f, 7.406f, 0.0f,
+    -7.527f, 0.0f, 7.406f, 0.0f, 18.75f, 0.0f, 6.062f, 0.0f,
+    4.277f, 0.0f, -7.0f, 0.0f, -6.97f, 0.0f, 30.5f, 0.0f,
+    7.617f, 0.0f, 7.742f, 0.0f, 8.62f, 0.0f, -13.89f, 0.0f,
+    10.945f, 0.0f, -16.05f, 0.0f, -4.62f, 0.0f, -4.223f, 0.0f,
+    -17.97f, 0.0f, -1.855f, 0.0f, -16.56f, 0.0f, 13.15f, 0.0f,
+    -0.8794f, 0.0f, 7.1f, 0.0f, 3.945f, 0.0f, -9.28f, 0.0f,
+    -8.91f, 0.0f, -16.58f, 0.0f, 11.15f, 0.0f, -6.42f, 0.0f,
+    -4.98f, 0.0f, -21.77f, 0.0f, -0.2249f, 0.0f, -5.133f, 0.0f
+};
 
 int32_t main(void)
 {
   //printf("bitrev =%d\n",doBitReverse);
 
-  perf_reset();
-  perf_enable_id(EVENT_ID);
-  riscv_cfft_f32(&riscv_cfft_sR_f32_len64, testInput_f32, ifftFlag, doBitReverse);
-  perf_stop();
-  printf("riscv_cfft_f32: %s: %d\n", SPR_PCER_NAME(EVENT_ID),  cpu_perf_get(EVENT_ID));
-#ifdef PRINT_OUTPUT
-  PRINT_F32(testInput_f32,fftSize);
-#endif
+  //perf_reset();
+  //perf_enable_id(EVENT_ID);
+  //riscv_cfft_f32(&riscv_cfft_sR_f32_len64, testInput_f32, ifftFlag, doBitReverse);
+  //perf_stop();
+  //printf("riscv_cfft_f32: %s: %d\n", SPR_PCER_NAME(EVENT_ID),  cpu_perf_get(EVENT_ID));
+//#ifdef PRINT_OUTPUT
+  //PRINT_F32(testInput_f32,fftSize);
+//#endif
 
-  perf_reset();
-  perf_enable_id(EVENT_ID);	
-  riscv_cfft_q15(&riscv_cfft_sR_q15_len64, testInput_q15, ifftFlag, doBitReverse);
-  perf_stop();
-  printf("riscv_cfft_q15: %s: %d\n", SPR_PCER_NAME(EVENT_ID),  cpu_perf_get(EVENT_ID));
-#ifdef PRINT_OUTPUT
-  PRINT_Q(testInput_q15,fftSize);
-#endif
+  //perf_reset();
+  //perf_enable_id(EVENT_ID);	
+  //riscv_cfft_q15(&riscv_cfft_sR_q15_len64, testInput_q15, ifftFlag, doBitReverse);
+  //perf_stop();
+  //printf("riscv_cfft_q15: %s: %d\n", SPR_PCER_NAME(EVENT_ID),  cpu_perf_get(EVENT_ID));
+//#ifdef PRINT_OUTPUT
+  //PRINT_Q(testInput_q15,fftSize);
+//#endif
 
+  // FP16 FFT test
+  //perf_reset();
+  //perf_enable_id(EVENT_ID);
+  riscv_cfft_fp16(&riscv_cfft_sR_fp16_len64, testInput_fp16, ifftFlag, doBitReverse);
+  //perf_stop();
+  //printf("riscv_cfft_fp16: %s: %d\n", SPR_PCER_NAME(EVENT_ID), cpu_perf_get(EVENT_ID));
+
+  // Validity check
+  int valid = 1;
+  for (int i = 0; i < TEST_LENGTH_SAMPLES; i++) {
+      if (!is_close_fp16(testInput_fp16[i], expected_output_fp16[i])) {
+          valid = 0;
+          printf("Mismatch at index %d: got %f, expected %f\n", 
+                 i, (float)testInput_fp16[i], (float)expected_output_fp16[i]);
+          break;
+      }
+  }
+
+  if (valid) {
+      printf("FP16 FFT output is valid.\n");
+  } else {
+      printf("FP16 FFT output is not valid.\n");
+  }
+
+#ifdef PRINT_OUTPUT
+  PRINT_F32(testInput_fp16, fftSize);
+#endif
 
   printf("End\n");
 

@@ -76,4 +76,6 @@
    extern const riscv_cfft_instance_q15 riscv_cfft_sR_q15_len2048;
    extern const riscv_cfft_instance_q15 riscv_cfft_sR_q15_len4096;
 
+   extern const riscv_cfft_instance_fp16 riscv_cfft_sR_fp16_len64;
+
 #endif

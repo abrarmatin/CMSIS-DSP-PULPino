@@ -213,7 +213,7 @@ extern "C"
 {
 #endif
 /*To use DSP extension*/
-#define USE_DSP_RISCV 
+//m#define USE_DSP_RISCV 
 
 
 /*
@@ -316,6 +316,8 @@ typedef signed short shortV __attribute__((vector_size (4)));
    * @brief 64-bit fractional data type in 1.63 format.
    */
   typedef int64_t q63_t;
+
+  typedef uint16_t float16_t;
 
   /**
    * @brief 32-bit floating-point type definition.
@@ -1729,6 +1731,20 @@ void riscv_cfft_q31(
   float32_t * p1,
   uint8_t ifftFlag,
   uint8_t bitReverseFlag);
+  
+
+  typedef struct {
+    uint16_t fftLen;
+    const float16_t *pTwiddle;
+    const uint16_t *pBitRevTable;
+    uint16_t bitRevLength;
+} riscv_cfft_instance_fp16;
+
+  void riscv_cfft_fp16(
+    const riscv_cfft_instance_fp16 * S,
+    float16_t * p1,
+    uint8_t ifftFlag,
+    uint8_t bitReverseFlag);
 
   /**
    * @brief Instance structure for the Q15 RFFT/RIFFT function.

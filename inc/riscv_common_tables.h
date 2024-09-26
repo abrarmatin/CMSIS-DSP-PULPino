@@ -48,6 +48,10 @@ extern const q15_t riscvRecipTableQ15[64];
 extern const q31_t riscvRecipTableQ31[64];
 /* extern const q31_t realCoefAQ31[1024]; */
 /* extern const q31_t realCoefBQ31[1024]; */
+
+//added for fp16
+extern const float16_t twiddleCoef_64_fp16[64];
+
 extern const float32_t twiddleCoef_16[32];
 extern const float32_t twiddleCoef_32[64];
 extern const float32_t twiddleCoef_64[128];

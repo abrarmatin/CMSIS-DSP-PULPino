@@ -156,3 +156,9 @@ const riscv_cfft_instance_q15 riscv_cfft_sR_q15_len2048 = {
 const riscv_cfft_instance_q15 riscv_cfft_sR_q15_len4096 = {
 	4096, twiddleCoef_4096_q15, riscvBitRevIndexTable_fixed_4096, RISCVBITREVINDEXTABLE_FIXED_4096_TABLE_LENGTH
 };
+
+//added for fp16
+
+const riscv_cfft_instance_fp16 riscv_cfft_sR_fp16_len64 = {
+	64, twiddleCoef_64_fp16, riscvBitRevIndexTable_fixed_64, RISCVBITREVINDEXTABLE_FIXED___64_TABLE_LENGTH
+};
